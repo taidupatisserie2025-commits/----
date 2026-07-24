@@ -166,6 +166,9 @@ export default function App() {
     const unsubscribe = subscribeToFirebase(
       settings.firebaseSyncKey,
       (remoteData) => {
+        // Firebase 有回應就代表連線成功，立即更新狀態標籤
+        setSyncStatus('success');
+
         if (isInitialLoad || remoteData.updatedAt > lastSyncedAt) {
           isInitialLoad = false;
           setLastSyncedAt(remoteData.updatedAt);
@@ -191,9 +194,8 @@ export default function App() {
             setIngredients(safeIngredients);
             localStorage.setItem('nutrition_calculator_ingredients', JSON.stringify(safeIngredients));
           }
-          
-          setSyncStatus('success');
         }
+
 
       },
       (error) => {
