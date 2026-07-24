@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { FileText, Database, Sun, Moon, Save, Settings } from 'lucide-react';
+import { FileText, Database, Sun, Moon, Save, Settings, Cloud } from 'lucide-react';
 import type { Recipe, Ingredient, AppSettings } from './types';
 import { DEFAULT_INGREDIENTS } from './data/defaultIngredients';
 import { calculateNutrition } from './utils/nutritionCalculator';
@@ -9,6 +9,7 @@ import { LabelPreview } from './components/LabelPreview';
 import { IngredientModal } from './components/IngredientModal';
 import { SaveConfirmModal } from './components/SaveConfirmModal';
 import { SettingsView } from './components/SettingsView';
+import { subscribeToFirebase, uploadToFirebase } from './utils/firebaseSync';
 
 // 建立樣品食譜 (經典原味可麗露) 作為初始資料，提升 UI 體驗
 const SAMPLE_RECIPE: Recipe = {
@@ -24,6 +25,7 @@ const SAMPLE_RECIPE: Recipe = {
     { ingredientId: 'ing-9', weight: 40 },   // 蛋黃 40g
   ],
   netWeight: 500,
+  netWeightTolerance: '',
   lossRate: 25,
   lossRateMode: 'manual',
   servingSize: 50,
@@ -56,7 +58,10 @@ const DEFAULT_SETTINGS: AppSettings = {
     { id: 'p-1', name: '標籤機 50mm x 30mm', widthMm: 50, heightMm: 30, minFontSizePx: 10 },
     { id: 'p-2', name: '圓標機 40mm 圓形', widthMm: 40, heightMm: 40, minFontSizePx: 8 }
   ],
-  selectedPrinterId: null
+  selectedPrinterId: null,
+  firebaseSyncEnabled: false,
+  firebaseSyncKey: '',
+  firebaseConfigJson: ''
 };
 
 export default function App() {
@@ -78,6 +83,10 @@ export default function App() {
   // UI Modal 狀態
   const [isIngredientModalOpen, setIsIngredientModalOpen] = useState(false);
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
+
+  // Firebase 雲端同步狀態
+  const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'success' | 'error'>('idle');
+  const [lastSyncedAt, setLastSyncedAt] = useState<number>(0);
 
   // Microsoft 存檔對話框控制
   const [saveConfirmState, setSaveConfirmState] = useState<{
@@ -142,6 +151,77 @@ export default function App() {
     }
   }, []);
 
+  // 1b. 處理 Firebase 雲端即時訂閱同步
+  useEffect(() => {
+    if (!settings.firebaseSyncEnabled || !settings.firebaseConfigJson || !settings.firebaseSyncKey) {
+      setSyncStatus('idle');
+      return;
+    }
+
+    setSyncStatus('syncing');
+    
+    let isInitialLoad = true;
+    
+    const unsubscribe = subscribeToFirebase(
+      settings.firebaseConfigJson,
+      settings.firebaseSyncKey,
+      (remoteData) => {
+        // 只有在第一次載入，或雲端資料的時間戳記比我們本機的更晚時，才覆蓋本機
+        if (isInitialLoad || remoteData.updatedAt > lastSyncedAt) {
+          isInitialLoad = false;
+          setLastSyncedAt(remoteData.updatedAt);
+          
+          if (remoteData.recipes && remoteData.recipes.length > 0) {
+            setRecipes(remoteData.recipes);
+            localStorage.setItem('nutrition_calculator_recipes', JSON.stringify(remoteData.recipes));
+            
+            // 如果當前編輯中的配方在雲端被更新，同步刷新編輯暫存區
+            if (currentRecipeId) {
+              const updated = remoteData.recipes.find(r => r.id === currentRecipeId);
+              if (updated) {
+                setEditingRecipe(updated);
+                setDirtyRecipes(prev => ({ ...prev, [currentRecipeId]: false }));
+              }
+            }
+          }
+          
+          if (remoteData.ingredients && remoteData.ingredients.length > 0) {
+            setIngredients(remoteData.ingredients);
+            localStorage.setItem('nutrition_calculator_ingredients', JSON.stringify(remoteData.ingredients));
+          }
+          
+          setSyncStatus('success');
+        }
+      },
+      (error) => {
+        console.error('Firebase sync error:', error);
+        setSyncStatus('error');
+      }
+    );
+
+    return () => {
+      unsubscribe();
+    };
+  }, [settings.firebaseSyncEnabled, settings.firebaseConfigJson, settings.firebaseSyncKey, lastSyncedAt, currentRecipeId]);
+
+  // 1c. 觸發雲端上傳
+  const triggerFirebaseUpload = async (updatedRecipes: Recipe[], updatedIngredients: Ingredient[]) => {
+    if (!settings.firebaseSyncEnabled || !settings.firebaseConfigJson || !settings.firebaseSyncKey) return;
+    try {
+      setSyncStatus('syncing');
+      const now = Date.now();
+      await uploadToFirebase(settings.firebaseConfigJson, settings.firebaseSyncKey, {
+        recipes: updatedRecipes,
+        ingredients: updatedIngredients
+      });
+      setLastSyncedAt(now);
+      setSyncStatus('success');
+    } catch (err) {
+      console.error('Firebase 同步失敗:', err);
+      setSyncStatus('error');
+    }
+  };
+
   // 2. 監聽瀏覽器關閉/重整，未存檔時彈出原生提示
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
@@ -173,7 +253,7 @@ export default function App() {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [editingRecipe, currentRecipeId]);
+  }, [editingRecipe, currentRecipeId, recipes, ingredients, settings]);
 
   // 切換深淺色主題
   const handleToggleTheme = () => {
@@ -207,6 +287,7 @@ export default function App() {
       productName: '',
       ingredients: [],
       netWeight: 100,
+      netWeightTolerance: '',
       lossRate: 0,
       lossRateMode: 'manual',
       servingSize: 50,
@@ -239,6 +320,9 @@ export default function App() {
     
     // 初始化清空此檔案的 dirty 標記
     setDirtyRecipes(prev => ({ ...prev, [newId]: false }));
+
+    // 同步到雲端
+    triggerFirebaseUpload(updatedRecipes, ingredients);
   };
 
   // 5. 選取食譜檔案邏輯 (觸發髒資料檢查)
@@ -283,6 +367,10 @@ export default function App() {
 
     // 清除該食譜的未存檔標記
     setDirtyRecipes(prev => ({ ...prev, [currentRecipeId]: false }));
+
+    // 觸發雲端同步
+    triggerFirebaseUpload(updatedRecipes, ingredients);
+    
     alert(`配方「${editingRecipe.name}」已儲存成功！`);
   };
 
@@ -309,6 +397,9 @@ export default function App() {
       delete copy[id];
       return copy;
     });
+
+    // 觸發雲端同步
+    triggerFirebaseUpload(updated, ingredients);
   };
 
   // 8. 接收表單修改，將 editingRecipe 設為髒資料狀態
@@ -341,6 +432,9 @@ export default function App() {
     const pending = saveConfirmState.pendingAction;
     setSaveConfirmState({ isOpen: false, documentName: '', pendingAction: null });
 
+    // 觸發雲端同步
+    triggerFirebaseUpload(updatedRecipes, ingredients);
+
     // 隨後執行待辦動作
     if (pending) {
       if (pending.type === 'switch') {
@@ -358,6 +452,7 @@ export default function App() {
           productName: '',
           ingredients: [],
           netWeight: 100,
+          netWeightTolerance: '',
           lossRate: 0,
           lossRateMode: 'manual',
           servingSize: 50,
@@ -385,6 +480,7 @@ export default function App() {
         setCurrentRecipeId(newId);
         setEditingRecipe({ ...newRec });
         setActiveTab('editor');
+        triggerFirebaseUpload(nextRecipes, ingredients);
       }
     }
   };
@@ -424,18 +520,21 @@ export default function App() {
     const updated = [ing, ...ingredients];
     setIngredients(updated);
     localStorage.setItem('nutrition_calculator_ingredients', JSON.stringify(updated));
+    triggerFirebaseUpload(recipes, updated);
   };
 
   const handleUpdateIngredient = (ing: Ingredient) => {
     const updated = ingredients.map((i) => (i.id === ing.id ? ing : i));
     setIngredients(updated);
     localStorage.setItem('nutrition_calculator_ingredients', JSON.stringify(updated));
+    triggerFirebaseUpload(recipes, updated);
   };
 
   const handleDeleteIngredient = (id: string) => {
     const updated = ingredients.filter((i) => i.id !== id);
     setIngredients(updated);
     localStorage.setItem('nutrition_calculator_ingredients', JSON.stringify(updated));
+    triggerFirebaseUpload(recipes, updated);
   };
 
   // ==========================================
@@ -444,6 +543,13 @@ export default function App() {
   const handleSaveSettings = (updatedSettings: AppSettings) => {
     setSettings(updatedSettings);
     localStorage.setItem('nutrition_calculator_settings', JSON.stringify(updatedSettings));
+    
+    // 如果剛啟用了 Firebase 同步，主動上傳一次本地現有數據
+    if (updatedSettings.firebaseSyncEnabled && updatedSettings.firebaseConfigJson && updatedSettings.firebaseSyncKey) {
+      setTimeout(() => {
+        triggerFirebaseUpload(recipes, ingredients);
+      }, 600);
+    }
   };
 
   const handleSelectPrinterId = (printerId: string | null) => {
@@ -460,7 +566,7 @@ export default function App() {
   // ==========================================
   const handleExportBackup = () => {
     const backupData = {
-      version: '1.1',
+      version: '1.2',
       recipes,
       ingredients,
       settings
@@ -511,6 +617,12 @@ export default function App() {
           }
           
           setDirtyRecipes({});
+          
+          // 如果有啟用 Firebase，同步上傳
+          if (data.settings?.firebaseSyncEnabled) {
+            triggerFirebaseUpload(data.recipes, data.ingredients);
+          }
+          
           alert('備份檔案已成功還原！');
         }
       } catch (err) {
@@ -574,6 +686,30 @@ export default function App() {
           </div>
           
           <div className="navbar-right">
+            {/* Firebase 雲端同步狀態顯示 */}
+            {settings.firebaseSyncEnabled && (
+              <span 
+                className={`sync-status-badge ${syncStatus}`}
+                style={{ 
+                  fontSize: '0.8rem', 
+                  marginRight: '12px',
+                  padding: '4px 8px',
+                  borderRadius: '4px',
+                  backgroundColor: syncStatus === 'success' ? '#def7ec' : syncStatus === 'error' ? '#fde8e8' : '#e1effe',
+                  color: syncStatus === 'success' ? '#03543f' : syncStatus === 'error' ? '#9b1c1c' : '#1e429f',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  fontWeight: '600'
+                }}
+              >
+                <Cloud size={12} />
+                {syncStatus === 'success' && '雲端已連線'}
+                {syncStatus === 'syncing' && '雲端同步中...'}
+                {syncStatus === 'error' && '雲端連線失敗'}
+              </span>
+            )}
+
             <button
               className="sidebar-footer-btn"
               onClick={() => setIsIngredientModalOpen(true)}

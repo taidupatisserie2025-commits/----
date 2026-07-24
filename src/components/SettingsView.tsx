@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Save, Plus, Trash2, Printer, Factory } from 'lucide-react';
+import { Save, Plus, Trash2, Printer, Factory, Cloud } from 'lucide-react';
 import type { AppSettings, PrinterProfile } from '../types';
 
 interface SettingsViewProps {
@@ -25,9 +25,33 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ settings, onSaveSett
   const [newMinFontSize, setNewMinFontSize] = useState(10);
   const [showAddPrinter, setShowAddPrinter] = useState(false);
 
+  // Firebase 雲端同步 State
+  const [firebaseSyncEnabled, setFirebaseSyncEnabled] = useState(settings.firebaseSyncEnabled || false);
+  const [firebaseSyncKey, setFirebaseSyncKey] = useState(settings.firebaseSyncKey || '');
+  const [firebaseConfigJson, setFirebaseConfigJson] = useState(settings.firebaseConfigJson || '');
+
   // 儲存設定
   const handleSaveAll = (e: React.FormEvent) => {
     e.preventDefault();
+
+    // 如果啟用了同步，基本檢查設定值
+    if (firebaseSyncEnabled) {
+      if (!firebaseSyncKey) {
+        alert('請設定一組專屬的「同步金鑰」以辨識您的雲端資料！');
+        return;
+      }
+      if (!firebaseConfigJson) {
+        alert('請貼上您的 Firebase Config JSON 設定！');
+        return;
+      }
+      try {
+        JSON.parse(firebaseConfigJson.trim());
+      } catch (err) {
+        alert('Firebase Config 格式不正確，必須是有效的 JSON 大括號格式！');
+        return;
+      }
+    }
+
     onSaveSettings({
       defaultOrigin,
       defaultManufacturer,
@@ -35,32 +59,32 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ settings, onSaveSett
       defaultPhone,
       defaultExpirationText,
       printers,
-      selectedPrinterId: settings.selectedPrinterId // 保持原本選擇的印表機
+      selectedPrinterId: settings.selectedPrinterId,
+      firebaseSyncEnabled,
+      firebaseSyncKey,
+      firebaseConfigJson
     });
-    alert('設定已儲存成功！將自動套用到未來新建的配方中。');
+    alert('所有系統與雲端設定已儲存成功！');
   };
 
   // 新增標籤機
   const handleAddPrinter = (e: React.MouseEvent) => {
     e.preventDefault();
     if (!newPrinterName.trim()) {
-      alert('請輸入標籤機名稱');
+      alert('請輸入標籤機名稱！');
       return;
     }
 
-    const newPrinter: PrinterProfile = {
+    const newProfile: PrinterProfile = {
       id: `printer-${Date.now()}`,
       name: newPrinterName.trim(),
-      widthMm: Number(newWidthMm),
-      heightMm: Number(newHeightMm),
-      minFontSizePx: Number(newMinFontSize)
+      widthMm: newWidthMm,
+      heightMm: newHeightMm,
+      minFontSizePx: newMinFontSize
     };
 
-    setPrinters([...printers, newPrinter]);
+    setPrinters([...printers, newProfile]);
     setNewPrinterName('');
-    setNewWidthMm(50);
-    setNewHeightMm(30);
-    setNewMinFontSize(10);
     setShowAddPrinter(false);
   };
 
@@ -75,7 +99,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ settings, onSaveSett
     <div className="settings-page-wrapper">
       <form onSubmit={handleSaveAll} className="settings-form">
         
-        {/* 廠商預設設定 */}
+        {/* 廠商預設資訊 */}
         <div className="form-card">
           <div className="card-title-bar">
             <Factory size={18} className="card-title-icon" />
@@ -148,99 +172,97 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ settings, onSaveSett
                 className="microsoft-btn btn-sm"
                 onClick={() => setShowAddPrinter(true)}
               >
-                <Plus size={12} className="btn-icon" />
-                新增標籤機
+                <Plus size={14} className="btn-icon" />
+                新增標籤機規格
               </button>
             )}
           </div>
 
-          {/* 新增標籤機表單區 */}
-          {showAddPrinter && (
-            <div className="add-printer-box">
-              <h4>新增標籤機設定檔</h4>
-              <div className="form-grid">
-                <div>
-                  <label className="form-label">標籤機名稱/規格名稱 *</label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    placeholder="如：Dymo 40mm圓形, Brother QL-800"
-                    value={newPrinterName}
-                    onChange={(e) => setNewPrinterName(e.target.value)}
-                  />
+          <div className="printer-settings-container">
+            {showAddPrinter && (
+              <div className="add-printer-box">
+                <h4>新增標籤印表機規格</h4>
+                <div className="form-grid">
+                  <div className="form-section-full">
+                    <label className="form-label">標籤機型號/規格名稱 *</label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      value={newPrinterName}
+                      onChange={(e) => setNewPrinterName(e.target.value)}
+                      placeholder="例如：Brother QL-800 (62x29)"
+                    />
+                  </div>
+                  <div>
+                    <label className="form-label">標籤紙寬度 (mm) *</label>
+                    <input
+                      type="number"
+                      className="form-input"
+                      value={newWidthMm}
+                      onChange={(e) => setNewWidthMm(Math.max(10, Number(e.target.value)))}
+                    />
+                  </div>
+                  <div>
+                    <label className="form-label">標籤紙高度 (mm，0為不限高) *</label>
+                    <input
+                      type="number"
+                      className="form-input"
+                      value={newHeightMm}
+                      onChange={(e) => setNewHeightMm(Math.max(0, Number(e.target.value)))}
+                    />
+                  </div>
+                  <div>
+                    <label className="form-label">最小建議可刷字級 (px) *</label>
+                    <input
+                      type="number"
+                      className="form-input"
+                      value={newMinFontSize}
+                      onChange={(e) => setNewMinFontSize(Math.max(4, Number(e.target.value)))}
+                    />
+                  </div>
                 </div>
-                <div>
-                  <label className="form-label">標籤紙寬度 (mm) *</label>
-                  <input
-                    type="number"
-                    className="form-input"
-                    value={newWidthMm}
-                    onChange={(e) => setNewWidthMm(Math.max(10, Number(e.target.value)))}
-                  />
-                </div>
-                <div>
-                  <label className="form-label">標籤紙高度 (mm) *</label>
-                  <input
-                    type="number"
-                    className="form-input"
-                    value={newHeightMm}
-                    onChange={(e) => setNewHeightMm(Math.max(10, Number(e.target.value)))}
-                  />
-                </div>
-                <div>
-                  <label className="form-label">最小可印中英文字級 (px) *</label>
-                  <input
-                    type="number"
-                    className="form-input"
-                    value={newMinFontSize}
-                    onChange={(e) => setNewMinFontSize(Math.max(6, Number(e.target.value)))}
-                  />
+                <div className="add-printer-actions">
+                  <button
+                    type="button"
+                    className="microsoft-btn btn-sm"
+                    onClick={() => setShowAddPrinter(false)}
+                  >
+                    取消
+                  </button>
+                  <button
+                    type="button"
+                    className="microsoft-btn microsoft-btn-primary btn-sm"
+                    onClick={handleAddPrinter}
+                  >
+                    新增
+                  </button>
                 </div>
               </div>
-              <div className="add-printer-actions">
-                <button
-                  type="button"
-                  className="microsoft-btn btn-sm"
-                  onClick={() => setShowAddPrinter(false)}
-                >
-                  取消
-                </button>
-                <button
-                  type="button"
-                  className="microsoft-btn microsoft-btn-primary btn-sm"
-                  onClick={handleAddPrinter}
-                >
-                  儲存標籤機
-                </button>
-              </div>
-            </div>
-          )}
+            )}
 
-          {/* 標籤機列表 */}
-          <div className="printers-list-table-container">
             {printers.length === 0 ? (
-              <div className="empty-table-cell">
-                目前尚無設定任何標籤機規格。可點擊右上方「新增標籤機」進行添加。
-              </div>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', textAlign: 'center', padding: '12px' }}>
+                目前沒有自訂標籤印表機，預覽將使用食譜的預設寬度。
+              </p>
             ) : (
-              <table className="ingredient-table">
+              <table className="printers-list-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
                 <thead>
-                  <tr>
-                    <th>標籤機/規格名稱</th>
-                    <th>紙張寬度 (mm)</th>
-                    <th>紙張高度 (mm)</th>
-                    <th>最小字型 (px)</th>
-                    <th>操作</th>
+                  <tr style={{ textAlign: 'left', borderBottom: '1px solid var(--border-color)' }}>
+                    <th style={{ padding: '8px' }}>型號名稱</th>
+                    <th style={{ padding: '8px' }}>紙張寬度</th>
+                    <th style={{ padding: '8px' }}>紙張高度</th>
+                    <th style={{ padding: '8px' }}>最小字級</th>
+                    <th style={{ padding: '8px', width: '60px' }}>操作</th>
                   </tr>
                 </thead>
                 <tbody>
                   {printers.map((p) => (
-                    <tr key={p.id}>
-                      <td className="font-medium">{p.name}</td>
-                      <td>{p.widthMm} mm</td>
-                      <td>{p.heightMm} mm</td>
-                      <td>{p.minFontSizePx} px</td>
-                      <td>
+                    <tr key={p.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                      <td style={{ padding: '8px', fontWeight: 'bold' }}>{p.name}</td>
+                      <td style={{ padding: '8px' }}>{p.widthMm} mm</td>
+                      <td style={{ padding: '8px' }}>{p.heightMm} mm</td>
+                      <td style={{ padding: '8px' }}>{p.minFontSizePx} px</td>
+                      <td style={{ padding: '8px' }}>
                         <button
                           type="button"
                           className="action-icon-btn delete-btn"
@@ -258,11 +280,72 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ settings, onSaveSett
           </div>
         </div>
 
+        {/* Firebase 雲端即時同步設定 */}
+        <div className="form-card">
+          <div className="card-title-bar">
+            <Cloud size={18} className="card-title-icon" />
+            <h3>Firebase 跨裝置雲端即時同步設定</h3>
+          </div>
+          <div style={{ padding: '4px 0 12px 0', fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+            <p>本系統預設將所有資料儲存在您本地瀏覽器。若您想要在**多台電腦或手機之間同步資料**，可以使用免費的 Firebase Realtime Database 服務。</p>
+            <div style={{ marginTop: '8px', padding: '10px', backgroundColor: 'var(--bg-app)', border: '1px solid var(--border-color)', borderRadius: '4px' }}>
+              <strong>📝 設定五步驟：</strong>
+              <ol style={{ margin: '4px 0 0 16px', padding: 0 }}>
+                <li>前往 <a href="https://console.firebase.google.com/" target="_blank" rel="noreferrer" style={{ color: 'var(--accent-color)', textDecoration: 'underline' }}>Firebase Console</a> 登入您的 Google 帳號。</li>
+                <li>建立一個新專案（例如：<code>nutrition-label-sync</code>）。</li>
+                <li>新增一個「網頁應用程式 (Web App)」，複製 SDK 設定中的 <code>firebaseConfig</code> 物件（大括號 <code>{"{ ... }"}</code> 內的部分）。</li>
+                <li>在 Firebase 左側選單選擇 <strong>Build ➡️ Realtime Database</strong> 建立資料庫，並將 Rules (規則) 暫時修改為 <code>{`{ "rules": { ".read": true, ".write": true } }`}</code> 以供連線。</li>
+                <li>在下方輸入框貼上 SDK 設定 JSON，並設定一組您的「專屬同步金鑰（同步房間密碼）」，即可啟用同步！</li>
+              </ol>
+            </div>
+          </div>
+
+          <div className="form-grid" style={{ borderTop: '1px solid var(--border-color)', paddingTop: '16px' }}>
+            <div className="form-section-full" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <label className="switch" style={{ margin: 0 }}>
+                <input
+                  type="checkbox"
+                  checked={firebaseSyncEnabled}
+                  onChange={(e) => setFirebaseSyncEnabled(e.target.checked)}
+                />
+                <span className="slider"></span>
+              </label>
+              <strong style={{ fontSize: '0.9rem' }}>啟用 Firebase 雲端即時同步</strong>
+            </div>
+
+            {firebaseSyncEnabled && (
+              <>
+                <div className="form-section-full">
+                  <label className="form-label">Firebase Config JSON 設定檔 (貼上 SDK 大括號內的代碼) *</label>
+                  <textarea
+                    className="form-input"
+                    style={{ fontFamily: 'monospace', fontSize: '0.8rem', height: '130px', resize: 'vertical' }}
+                    value={firebaseConfigJson}
+                    onChange={(e) => setFirebaseConfigJson(e.target.value)}
+                    placeholder={`例如：\n{\n  "apiKey": "AIzaSy...",\n  "authDomain": "...",\n  "databaseURL": "...",\n  "projectId": "...",\n  "storageBucket": "...",\n  "messagingSenderId": "...",\n  "appId": "..."\n}`}
+                  />
+                </div>
+
+                <div className="form-section-full">
+                  <label className="form-label">您的專屬同步金鑰 (同步密碼) *</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={firebaseSyncKey}
+                    onChange={(e) => setFirebaseSyncKey(e.target.value)}
+                    placeholder="請輸入自訂的同步密碼（例如：taidu-bakery-2025），不同裝置輸入同密碼即可共享數據"
+                  />
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+
         {/* 儲存按鈕 */}
         <div className="settings-submit-container">
           <button type="submit" className="microsoft-btn microsoft-btn-primary">
             <Save size={16} className="btn-icon" />
-            儲存所有系統設定
+            儲存所有系統與雲端設定
           </button>
         </div>
 

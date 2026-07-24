@@ -72,6 +72,11 @@ export interface AppSettings {
   defaultExpirationText: string;
   printers: PrinterProfile[];
   selectedPrinterId: string | null;
+  
+  // Firebase 雲端同步設定
+  firebaseSyncEnabled?: boolean;
+  firebaseSyncKey?: string;
+  firebaseConfigJson?: string; // 使用者貼上的 Firebase SDK config JSON 字串
 }
 
 export interface AppState {
