@@ -1,0 +1,1576 @@
+/* ==========================================================================
+   Design System & Styling for Nutrition Label Calculator
+   Aesthetics: Rich, Clean, Glassmorphic, Modern Desktop App with Windows UI hints
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=Outfit:wght@300;400;500;600;700&display=swap');
+
+:root {
+  /* 淺色模式變數 */
+  --bg-app: #f4f6f9;
+  --bg-panel: #ffffff;
+  --bg-sidebar: #ffffff;
+  --bg-input: #ffffff;
+  --border-color: #e2e8f0;
+  --text-primary: #1e293b;
+  --text-secondary: #64748b;
+  --text-muted: #94a3b8;
+  --accent-color: #3b82f6;
+  --accent-hover: #2563eb;
+  --accent-light: #eff6ff;
+  --success-color: #10b981;
+  --success-bg: #ecfdf5;
+  --error-color: #ef4444;
+  --error-bg: #fef2f2;
+  --warning-color: #f59e0b;
+  --warning-bg: #fffbeb;
+  
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  
+  --font-family: 'Outfit', 'Noto Sans TC', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --border-radius: 8px;
+  
+  /* Windows Style Elements (Light) */
+  --win-header-bg: #0078d4;
+  --win-btn-primary: #0078d4;
+  --win-btn-primary-hover: #106ebe;
+  --win-bg-dialog: #ffffff;
+}
+
+[data-theme="dark"] {
+  /* 深色模式變數 */
+  --bg-app: #0f172a;
+  --bg-panel: #1e293b;
+  --bg-sidebar: #0f172a;
+  --bg-input: #1e293b;
+  --border-color: #334155;
+  --text-primary: #f8fafc;
+  --text-secondary: #cbd5e1;
+  --text-muted: #64748b;
+  --accent-color: #3b82f6;
+  --accent-hover: #60a5fa;
+  --accent-light: #1e3a8a;
+  --success-color: #34d399;
+  --success-bg: #064e3b;
+  --error-color: #f87171;
+  --error-bg: #7f1d1d;
+  --warning-color: #fbbf24;
+  --warning-bg: #78350f;
+  
+  /* Windows Style Elements (Dark) */
+  --win-header-bg: #1f1f1f;
+  --win-btn-primary: #0078d4;
+  --win-btn-primary-hover: #106ebe;
+  --win-bg-dialog: #1f1f1f;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-family);
+  background-color: var(--bg-app);
+  color: var(--text-primary);
+  transition: background-color 0.3s, color 0.3s;
+  overflow-x: hidden;
+  height: 100vh;
+}
+
+#root {
+  height: 100%;
+}
+
+/* ==========================================================================
+   主佈局
+   ========================================================================== */
+.app-container {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* 側邊欄 */
+.sidebar-container {
+  width: 280px;
+  background-color: var(--bg-sidebar);
+  border-right: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  flex-shrink: 0;
+  transition: background-color 0.3s, border-color 0.3s;
+}
+
+.sidebar-header {
+  padding: 16px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.sidebar-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 12px;
+  color: var(--text-primary);
+}
+
+.sidebar-new-btn {
+  width: 100%;
+}
+
+.sidebar-search {
+  padding: 12px 16px;
+  position: relative;
+}
+
+.sidebar-search input {
+  width: 100%;
+  padding: 8px 12px 8px 32px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  background-color: var(--bg-input);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  transition: all 0.2s;
+}
+
+.sidebar-search input:focus {
+  outline: none;
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 2px var(--accent-light);
+}
+
+.sidebar-search .search-icon {
+  position: absolute;
+  left: 26px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-secondary);
+}
+
+.recipes-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 12px 12px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.recipe-list-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 1px solid transparent;
+}
+
+.recipe-list-item:hover {
+  background-color: var(--accent-light);
+}
+
+.recipe-list-item.selected {
+  background-color: var(--accent-light);
+  border-color: var(--accent-color);
+}
+
+.item-main-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.item-name-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.recipe-name-text {
+  font-weight: 500;
+  font-size: 0.95rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.unsaved-badge {
+  color: var(--warning-color);
+  font-size: 0.8rem;
+  flex-shrink: 0;
+  animation: pulse 1.5s infinite;
+}
+
+.recipe-sub-text {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.item-delete-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s;
+  opacity: 0;
+}
+
+.recipe-list-item:hover .item-delete-btn {
+  opacity: 1;
+}
+
+.item-delete-btn:hover {
+  color: var(--error-color);
+  background-color: var(--error-bg);
+}
+
+.empty-sidebar-message {
+  padding: 24px 12px;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+.sidebar-footer {
+  padding: 12px 16px;
+  border-top: 1px solid var(--border-color);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.sidebar-footer-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid var(--border-color);
+  background-color: var(--bg-panel);
+  border-radius: var(--border-radius);
+  color: var(--text-primary);
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.sidebar-footer-btn:hover {
+  border-color: var(--accent-color);
+  color: var(--accent-color);
+  background-color: var(--accent-light);
+}
+
+/* ==========================================================================
+   主工作區
+   ========================================================================== */
+.main-workspace {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* 頂部導航列 */
+.navbar-header {
+  height: 60px;
+  background-color: var(--bg-panel);
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  flex-shrink: 0;
+}
+
+.navbar-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.navbar-app-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.active-file-title {
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+  border-left: 2px solid var(--border-color);
+  padding-left: 12px;
+}
+
+.navbar-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* 切換按鈕與控制鈕 */
+.theme-toggle-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-secondary);
+  padding: 8px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.theme-toggle-btn:hover {
+  background-color: var(--border-color);
+  color: var(--text-primary);
+}
+
+/* 工作雙欄 */
+.workspace-split-view {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+  position: relative;
+}
+
+/* 食譜編輯表單欄 (左) */
+.form-view-column {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  background-color: var(--bg-app);
+}
+
+/* 標籤預覽與排版欄 (右) */
+.preview-view-column {
+  width: 450px;
+  border-left: 1px solid var(--border-color);
+  background-color: var(--bg-panel);
+  overflow-y: auto;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+
+/* 沒有選取食譜時的空白畫面 */
+.no-recipe-state {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px;
+  text-align: center;
+  background-color: var(--bg-app);
+  color: var(--text-secondary);
+}
+
+.no-recipe-icon {
+  margin-bottom: 16px;
+  color: var(--text-muted);
+  animation: float 3s ease-in-out infinite;
+}
+
+.no-recipe-state h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: var(--text-primary);
+}
+
+.no-recipe-state p {
+  font-size: 0.95rem;
+  max-width: 400px;
+  margin-bottom: 24px;
+  line-height: 1.6;
+}
+
+/* ==========================================================================
+   表單組件與卡片
+   ========================================================================== */
+.form-card {
+  background-color: var(--bg-panel);
+  border-radius: var(--border-radius);
+  border: 1px solid var(--border-color);
+  padding: 20px;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.3s;
+}
+
+.card-title-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 12px;
+  margin-bottom: 16px;
+}
+
+.card-title-bar h3 {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.card-title-icon {
+  color: var(--accent-color);
+}
+
+.card-title-bar-flex {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 12px;
+  margin-bottom: 16px;
+}
+
+.title-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.title-left h3 {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.link-action-btn {
+  background: none;
+  border: none;
+  color: var(--accent-color);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.link-action-btn:hover {
+  color: var(--accent-hover);
+  text-decoration: underline;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.form-section-full {
+  grid-column: span 2;
+}
+
+.form-label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 500;
+  margin-bottom: 6px;
+  color: var(--text-secondary);
+}
+
+.form-input, .form-select, .form-textarea {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  background-color: var(--bg-input);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  transition: all 0.2s;
+}
+
+.form-input:focus, .form-select:focus, .form-textarea:focus {
+  outline: none;
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 2px var(--accent-light);
+}
+
+.form-textarea {
+  resize: vertical;
+}
+
+.checkbox-toggle-container {
+  display: flex;
+  align-items: center;
+  height: 38px;
+}
+
+.checkbox-toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+/* 原料清單編輯器 */
+.ingredients-editor-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.editor-list-header {
+  display: flex;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.ingredient-row-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+}
+
+.col-name {
+  flex: 2;
+  min-width: 0;
+}
+
+.col-weight {
+  width: 90px;
+}
+
+.col-bakers {
+  width: 70px;
+  text-align: right;
+}
+
+.col-cost {
+  width: 80px;
+  text-align: right;
+}
+
+.col-actions {
+  width: 32px;
+  display: flex;
+  justify-content: center;
+}
+
+.editor-list-actions {
+  margin-top: 8px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.recipe-calc-summary {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  background-color: var(--bg-app);
+  padding: 12px;
+  border-radius: var(--border-radius);
+  margin-top: 12px;
+}
+
+.summary-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.summary-item span {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.summary-item strong {
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.empty-ingredients-panel {
+  text-align: center;
+  padding: 32px;
+  background-color: var(--bg-app);
+  border-radius: var(--border-radius);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+/* ==========================================================================
+   標籤預覽區排版
+   ========================================================================== */
+.preview-pane-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* 合規性儀表板 */
+.compliance-dashboard {
+  background-color: var(--bg-app);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  padding: 12px 16px;
+}
+
+.dashboard-header {
+  font-weight: 600;
+}
+
+.status-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+}
+
+.status-badge.success {
+  color: var(--success-color);
+}
+
+.status-badge.error {
+  color: var(--error-color);
+}
+
+.compliance-errors-list {
+  list-style: none;
+  margin-top: 8px;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* 匯出動作面板 */
+.export-action-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background-color: var(--bg-app);
+  padding: 12px;
+  border-radius: var(--border-radius);
+}
+
+.export-dropdown-group {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.export-group-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.btn-row {
+  display: flex;
+  gap: 6px;
+}
+
+/* 標籤顯示面板 */
+.label-render-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+}
+
+.preview-label-column {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.preview-card-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.preview-card-badge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+}
+
+/* 隱藏但用於匯出的標籤 */
+.hidden-export-container {
+  position: absolute;
+  top: -9999px;
+  left: -9999px;
+  pointer-events: none;
+}
+
+/* 營養標籤內部格線 (衛福部標準樣式) */
+.nutrition-table-box th, .nutrition-table-box td {
+  border-bottom: 1px solid #000;
+  padding: 2px 0;
+}
+
+.nutrition-table-box-horizontal td {
+  padding: 2px 0;
+}
+
+/* ==========================================================================
+   彈出視窗與互動組件
+   ========================================================================== */
+/* 通用 Modal 遮罩 */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.ingredient-modal-container {
+  width: 900px;
+  max-width: 95vw;
+  height: 600px;
+  background-color: var(--bg-panel);
+  border-radius: var(--border-radius);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.modal-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.modal-header-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.modal-header-title h2 {
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.header-icon {
+  color: var(--accent-color);
+}
+
+.modal-close-btn {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-radius: 4px;
+  padding: 4px;
+}
+
+.modal-close-btn:hover {
+  background-color: var(--border-color);
+  color: var(--text-primary);
+}
+
+.modal-tabs {
+  display: flex;
+  background-color: var(--bg-app);
+  border-bottom: 1px solid var(--border-color);
+  padding: 0 12px;
+}
+
+.modal-tab {
+  padding: 12px 16px;
+  background: none;
+  border: none;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  position: relative;
+}
+
+.modal-tab.active {
+  color: var(--accent-color);
+}
+
+.modal-tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background-color: var(--accent-color);
+}
+
+.tab-icon {
+  margin-right: 6px;
+}
+
+.modal-tab-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+}
+
+/* 1. 食材清單樣式 */
+.tab-pane-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  height: 100%;
+}
+
+.search-bar {
+  position: relative;
+}
+
+.search-bar input {
+  width: 100%;
+  padding: 8px 12px 8px 36px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  background-color: var(--bg-input);
+  color: var(--text-primary);
+}
+
+.search-bar .search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-secondary);
+}
+
+.ingredient-table-container {
+  flex: 1;
+  overflow-y: auto;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+}
+
+.ingredient-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 0.85rem;
+}
+
+.ingredient-table th, .ingredient-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.ingredient-table th {
+  background-color: var(--bg-app);
+  font-weight: 600;
+  color: var(--text-secondary);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.ingredient-table tr:hover {
+  background-color: var(--accent-light);
+}
+
+.custom-row {
+  background-color: rgba(59, 130, 246, 0.03);
+}
+
+.custom-badge {
+  background-color: var(--accent-light);
+  color: var(--accent-color);
+  font-size: 0.7rem;
+  padding: 1px 4px;
+  border-radius: 4px;
+  margin-left: 6px;
+  border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.allergen-tag-micro {
+  display: inline-block;
+  background-color: var(--warning-bg);
+  color: var(--warning-color);
+  font-size: 0.7rem;
+  padding: 1px 4px;
+  border-radius: 4px;
+  margin-right: 3px;
+  border: 1px solid rgba(245, 158, 11, 0.2);
+}
+
+.table-allergen-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+}
+
+.action-buttons-cell {
+  display: flex;
+  gap: 4px;
+}
+
+.empty-table-cell {
+  text-align: center;
+  padding: 48px;
+  color: var(--text-secondary);
+}
+
+/* 2. 新增食材表單樣式 */
+.tab-pane-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.form-error-alert {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: var(--error-bg);
+  color: var(--error-color);
+  padding: 10px;
+  border-radius: var(--border-radius);
+  font-size: 0.9rem;
+}
+
+.allergen-selection-section {
+  border-top: 1px solid var(--border-color);
+  padding-top: 16px;
+}
+
+.allergen-checkbox-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.allergen-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  font-size: 0.8rem;
+  transition: all 0.2s;
+}
+
+.allergen-checkbox-label:hover {
+  background-color: var(--accent-light);
+}
+
+.allergen-checkbox-label.checked {
+  border-color: var(--warning-color);
+  background-color: var(--warning-bg);
+  color: var(--warning-color);
+}
+
+.form-actions-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  border-top: 1px solid var(--border-color);
+  padding-top: 16px;
+}
+
+/* 3. 聯網搜尋樣式 */
+.tab-pane-search {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  height: 100%;
+}
+
+.online-search-form {
+  display: flex;
+  gap: 8px;
+}
+
+.search-input-field {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  background-color: var(--bg-input);
+  color: var(--text-primary);
+}
+
+.search-submit-btn {
+  padding: 8px 16px;
+  background-color: var(--accent-color);
+  border: none;
+  border-radius: var(--border-radius);
+  color: #ffffff;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.search-submit-btn:hover {
+  background-color: var(--accent-hover);
+}
+
+.search-results-list {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.search-status-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px;
+  gap: 12px;
+  color: var(--text-secondary);
+}
+
+.spinner {
+  width: 24px;
+  height: 24px;
+  border: 3px solid var(--border-color);
+  border-top-color: var(--accent-color);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.results-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.search-result-card {
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  padding: 12px;
+  background-color: var(--bg-panel);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.search-result-card:hover {
+  box-shadow: var(--shadow-sm);
+  border-color: var(--accent-color);
+}
+
+.search-result-card h4 {
+  font-size: 0.9rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.card-source-tag {
+  font-size: 0.7rem;
+  background-color: var(--border-color);
+  color: var(--text-secondary);
+  padding: 1px 4px;
+  border-radius: 4px;
+}
+
+.card-nutrition-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  background-color: var(--bg-app);
+  padding: 6px;
+  border-radius: 4px;
+}
+
+.card-allergens {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.import-card-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  margin-top: auto;
+  padding: 6px;
+  background-color: var(--accent-light);
+  border: 1px dashed var(--accent-color);
+  border-radius: var(--border-radius);
+  color: var(--accent-color);
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.import-card-btn:hover {
+  background-color: var(--accent-color);
+  color: #ffffff;
+}
+
+.search-placeholder-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 300px;
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.placeholder-icon {
+  margin-bottom: 12px;
+  color: var(--text-muted);
+}
+
+/* ==========================================================================
+   MICROSOFT 經典提示視窗
+   ========================================================================== */
+.microsoft-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000; /* 比其他 Modal 還要高 */
+}
+
+.microsoft-dialog {
+  width: 440px;
+  background-color: var(--win-bg-dialog);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+  border: 1px solid #707070;
+  display: flex;
+  flex-direction: column;
+  font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif;
+  color: var(--text-primary);
+}
+
+.microsoft-dialog-header {
+  background-color: var(--win-header-bg);
+  padding: 6px 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: #ffffff;
+  font-size: 0.85rem;
+}
+
+.microsoft-dialog-title {
+  font-weight: normal;
+}
+
+.microsoft-dialog-close {
+  background: none;
+  border: none;
+  color: #ffffff;
+  font-size: 0.85rem;
+  cursor: pointer;
+  opacity: 0.8;
+}
+
+.microsoft-dialog-close:hover {
+  opacity: 1;
+}
+
+.microsoft-dialog-content {
+  padding: 20px 24px;
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.microsoft-dialog-icon-container {
+  color: var(--warning-color);
+  flex-shrink: 0;
+}
+
+.microsoft-dialog-message {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.microsoft-dialog-text-main {
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+
+.microsoft-dialog-text-sub {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.microsoft-dialog-actions {
+  background-color: #f0f0f0;
+  padding: 12px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  border-top: 1px solid #dfdfdf;
+}
+
+/* 關聯 Microsoft 主題的按鈕 */
+[data-theme="dark"] .microsoft-dialog-actions {
+  background-color: #2d2d2d;
+  border-top: 1px solid #3d3d3d;
+}
+
+/* ==========================================================================
+   基本按鈕樣式
+   ========================================================================== */
+.microsoft-btn {
+  padding: 6px 16px;
+  border: 1px solid #8f8f8f;
+  background-color: #e1e1e1;
+  color: #000000;
+  font-family: var(--font-family);
+  font-size: 0.85rem;
+  cursor: pointer;
+  min-width: 80px;
+  transition: background-color 0.1s;
+}
+
+.microsoft-btn:hover {
+  background-color: #e5e5e5;
+  border-color: #707070;
+}
+
+.microsoft-btn-primary {
+  background-color: var(--win-btn-primary);
+  border-color: var(--win-btn-primary);
+  color: #ffffff;
+}
+
+.microsoft-btn-primary:hover {
+  background-color: var(--win-btn-primary-hover);
+  border-color: var(--win-btn-primary-hover);
+}
+
+.btn-sm {
+  padding: 4px 10px;
+  font-size: 0.75rem;
+  min-width: 60px;
+}
+
+.action-icon-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  color: var(--text-secondary);
+}
+
+.action-icon-btn:hover {
+  background-color: var(--border-color);
+  color: var(--text-primary);
+}
+
+.action-icon-btn.delete-btn:hover {
+  color: var(--error-color);
+  background-color: var(--error-bg);
+}
+
+/* ==========================================================================
+   動畫效果
+   ========================================================================== */
+@keyframes pulse {
+  0% { opacity: 0.4; }
+  50% { opacity: 1; }
+  100% { opacity: 0.4; }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-8px); }
+  100% { transform: translateY(0px); }
+}
+
+/* ==========================================================================
+   共用元素與字型顏色
+   ========================================================================== */
+.text-right { text-align: right; }
+.text-center { text-align: center; }
+.text-success { color: var(--success-color) !important; }
+.text-error { color: var(--error-color) !important; }
+.text-muted { color: var(--text-muted); }
+.text-placeholder { color: var(--text-muted); font-style: italic; }
+.font-mono { font-family: Courier, monospace; }
+.font-medium { font-weight: 500; }
+.font-bold { font-weight: 700; }
+.btn-icon { margin-right: 6px; flex-shrink: 0; }
+
+/* ==========================================================================
+   計算模式切換滑動開關 (Switch)
+   ========================================================================== */
+.toggle-switch-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: var(--bg-app);
+  padding: 10px 14px;
+  border-radius: var(--border-radius);
+  margin-bottom: 16px;
+  border: 1px solid var(--border-color);
+}
+
+.toggle-switch-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 46px;
+  height: 24px;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: var(--text-muted);
+  transition: .3s;
+  border-radius: 24px;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: .3s;
+  border-radius: 50%;
+  box-shadow: var(--shadow-sm);
+}
+
+input:checked + .slider {
+  background-color: var(--accent-color);
+}
+
+input:checked + .slider:before {
+  transform: translateX(22px);
+}
+
+/* ==========================================================================
+   自動換算衍生值呈現 (Derived Value Tags)
+   ========================================================================== */
+.derived-value-indicator {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background-color: var(--bg-app);
+  padding: 12px;
+  border-radius: var(--border-radius);
+  border: 1px dashed var(--border-color);
+  margin-top: 4px;
+}
+
+.derived-badge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--accent-color);
+  background-color: var(--accent-light);
+  padding: 2px 6px;
+  border-radius: 4px;
+  align-self: flex-start;
+  margin-bottom: 2px;
+}
+
+.derived-val-item {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.derived-val-item strong {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+/* ==========================================================================
+   設定頁面 (SettingsView)
+   ========================================================================== */
+.settings-page-wrapper {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+  background-color: var(--bg-app);
+}
+
+.settings-form {
+  max-width: 800px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.add-printer-box {
+  background-color: var(--bg-app);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.add-printer-box h4 {
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: 12px;
+  color: var(--text-primary);
+  border-left: 3px solid var(--accent-color);
+  padding-left: 8px;
+}
+
+.add-printer-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.printers-list-table-container {
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  overflow: hidden;
+}
+
+.settings-submit-container {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+
+/* ==========================================================================
+   導航列頁籤 (Navbar Tabs)
+   ========================================================================== */
+.navbar-tabs-container {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 24px;
+}
+
+.navbar-tab-btn {
+  display: flex;
+  align-items: center;
+  padding: 6px 12px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: none;
+  border: 1px solid transparent;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.navbar-tab-btn:hover {
+  background-color: var(--bg-app);
+  color: var(--text-primary);
+}
+
+.navbar-tab-btn.active {
+  background-color: var(--accent-light);
+  border-color: rgba(59, 130, 246, 0.2);
+  color: var(--accent-color);
+  font-weight: 600;
+}
+
+/* ==========================================================================
+   標籤實體裁剪虛線 (Printer Height Boundary)
+   ========================================================================== */
+.printer-height-boundary {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  border-bottom: 2px dashed rgba(239, 68, 68, 0.4);
+  pointer-events: none;
+  z-index: 5;
+}
+
+.printer-height-boundary::after {
+  content: '高度邊界線 (Height Limit)';
+  position: absolute;
+  right: 6px;
+  bottom: 2px;
+  font-size: 9px;
+  color: rgba(239, 68, 68, 0.7);
+  background-color: rgba(255, 255, 255, 0.8);
+  padding: 1px 4px;
+  border-radius: 2px;
+  font-weight: bold;
+}
