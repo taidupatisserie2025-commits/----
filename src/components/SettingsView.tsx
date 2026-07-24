@@ -26,31 +26,12 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ settings, onSaveSett
   const [showAddPrinter, setShowAddPrinter] = useState(false);
 
   // Firebase 雲端同步 State
-  const [firebaseSyncEnabled, setFirebaseSyncEnabled] = useState(settings.firebaseSyncEnabled || false);
   const [firebaseSyncKey, setFirebaseSyncKey] = useState(settings.firebaseSyncKey || '');
-  const [firebaseConfigJson, setFirebaseConfigJson] = useState(settings.firebaseConfigJson || '');
+
 
   // 儲存設定
   const handleSaveAll = (e: React.FormEvent) => {
     e.preventDefault();
-
-    // 如果啟用了同步，基本檢查設定值
-    if (firebaseSyncEnabled) {
-      if (!firebaseSyncKey) {
-        alert('請設定一組專屬的「同步金鑰」以辨識您的雲端資料！');
-        return;
-      }
-      if (!firebaseConfigJson) {
-        alert('請貼上您的 Firebase Config JSON 設定！');
-        return;
-      }
-      try {
-        JSON.parse(firebaseConfigJson.trim());
-      } catch (err) {
-        alert('Firebase Config 格式不正確，必須是有效的 JSON 大括號格式！');
-        return;
-      }
-    }
 
     onSaveSettings({
       defaultOrigin,
@@ -60,9 +41,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ settings, onSaveSett
       defaultExpirationText,
       printers,
       selectedPrinterId: settings.selectedPrinterId,
-      firebaseSyncEnabled,
-      firebaseSyncKey,
-      firebaseConfigJson
+      firebaseSyncKey
     });
     alert('所有系統與雲端設定已儲存成功！');
   };
@@ -284,60 +263,24 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ settings, onSaveSett
         <div className="form-card">
           <div className="card-title-bar">
             <Cloud size={18} className="card-title-icon" />
-            <h3>Firebase 跨裝置雲端即時同步設定</h3>
+            <h3>☁️ 跨裝置雲端即時同步</h3>
           </div>
-          <div style={{ padding: '4px 0 12px 0', fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
-            <p>本系統預設將所有資料儲存在您本地瀏覽器。若您想要在**多台電腦或手機之間同步資料**，可以使用免費的 Firebase Realtime Database 服務。</p>
-            <div style={{ marginTop: '8px', padding: '10px', backgroundColor: 'var(--bg-app)', border: '1px solid var(--border-color)', borderRadius: '4px' }}>
-              <strong>📝 設定五步驟：</strong>
-              <ol style={{ margin: '4px 0 0 16px', padding: 0 }}>
-                <li>前往 <a href="https://console.firebase.google.com/" target="_blank" rel="noreferrer" style={{ color: 'var(--accent-color)', textDecoration: 'underline' }}>Firebase Console</a> 登入您的 Google 帳號。</li>
-                <li>建立一個新專案（例如：<code>nutrition-label-sync</code>）。</li>
-                <li>新增一個「網頁應用程式 (Web App)」，複製 SDK 設定中的 <code>firebaseConfig</code> 物件（大括號 <code>{"{ ... }"}</code> 內的部分）。</li>
-                <li>在 Firebase 左側選單選擇 <strong>Build ➡️ Realtime Database</strong> 建立資料庫，並將 Rules (規則) 暫時修改為 <code>{`{ "rules": { ".read": true, ".write": true } }`}</code> 以供連線。</li>
-                <li>在下方輸入框貼上 SDK 設定 JSON，並設定一組您的「專屬同步金鑰（同步房間密碼）」，即可啟用同步！</li>
-              </ol>
-            </div>
+          <div style={{ padding: '4px 0 12px 0', fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: '1.6' }}>
+            <p>只要在多台裝置上輸入相同的「同步金鑰」，所有配方資料將會透過 Firebase Firestore 即時同步。</p>
+            <p style={{ marginTop: '6px' }}>🔑 <strong>同步金鑰就像「房間名稱」</strong>，任何輸入相同金鑰的裝置都能看到同樣的資料。留空則不啟用同步。</p>
           </div>
 
           <div className="form-grid" style={{ borderTop: '1px solid var(--border-color)', paddingTop: '16px' }}>
-            <div className="form-section-full" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <label className="switch" style={{ margin: 0 }}>
-                <input
-                  type="checkbox"
-                  checked={firebaseSyncEnabled}
-                  onChange={(e) => setFirebaseSyncEnabled(e.target.checked)}
-                />
-                <span className="slider"></span>
-              </label>
-              <strong style={{ fontSize: '0.9rem' }}>啟用 Firebase 雲端即時同步</strong>
+            <div className="form-section-full">
+              <label className="form-label">同步金鑰（留空則不同步）</label>
+              <input
+                type="text"
+                className="form-input"
+                value={firebaseSyncKey}
+                onChange={(e) => setFirebaseSyncKey(e.target.value)}
+                placeholder="輸入一組自訂的同步密碼（例如：taidu-bakery-2025），不同裝置輸入同密碼即可共享資料"
+              />
             </div>
-
-            {firebaseSyncEnabled && (
-              <>
-                <div className="form-section-full">
-                  <label className="form-label">Firebase Config JSON 設定檔 (貼上 SDK 大括號內的代碼) *</label>
-                  <textarea
-                    className="form-input"
-                    style={{ fontFamily: 'monospace', fontSize: '0.8rem', height: '130px', resize: 'vertical' }}
-                    value={firebaseConfigJson}
-                    onChange={(e) => setFirebaseConfigJson(e.target.value)}
-                    placeholder={`例如：\n{\n  "apiKey": "AIzaSy...",\n  "authDomain": "...",\n  "databaseURL": "...",\n  "projectId": "...",\n  "storageBucket": "...",\n  "messagingSenderId": "...",\n  "appId": "..."\n}`}
-                  />
-                </div>
-
-                <div className="form-section-full">
-                  <label className="form-label">您的專屬同步金鑰 (同步密碼) *</label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    value={firebaseSyncKey}
-                    onChange={(e) => setFirebaseSyncKey(e.target.value)}
-                    placeholder="請輸入自訂的同步密碼（例如：taidu-bakery-2025），不同裝置輸入同密碼即可共享數據"
-                  />
-                </div>
-              </>
-            )}
           </div>
         </div>
 

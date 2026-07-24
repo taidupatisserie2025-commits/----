@@ -73,10 +73,10 @@ export interface AppSettings {
   printers: PrinterProfile[];
   selectedPrinterId: string | null;
   
-  // Firebase 雲端同步設定
-  firebaseSyncEnabled?: boolean;
+  // Firebase 雲端同步設定（設定檔已寫死在程式碼中，只需填入同步金鑰）
+  firebaseSyncEnabled?: boolean; // 保留相容性，不再用於判斷邏輯
   firebaseSyncKey?: string;
-  firebaseConfigJson?: string; // 使用者貼上的 Firebase SDK config JSON 字串
+
 }
 
 export interface AppState {

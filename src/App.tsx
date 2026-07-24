@@ -11,6 +11,7 @@ import { SaveConfirmModal } from './components/SaveConfirmModal';
 import { SettingsView } from './components/SettingsView';
 import { subscribeToFirebase, uploadToFirebase } from './utils/firebaseSync';
 
+
 // 建立樣品食譜 (經典原味可麗露) 作為初始資料，提升 UI 體驗
 const SAMPLE_RECIPE: Recipe = {
   id: 'recipe-sample-1',
@@ -59,9 +60,8 @@ const DEFAULT_SETTINGS: AppSettings = {
     { id: 'p-2', name: '圓標機 40mm 圓形', widthMm: 40, heightMm: 40, minFontSizePx: 8 }
   ],
   selectedPrinterId: null,
-  firebaseSyncEnabled: false,
-  firebaseSyncKey: '',
-  firebaseConfigJson: ''
+  firebaseSyncEnabled: true,
+  firebaseSyncKey: ''
 };
 
 export default function App() {
@@ -151,9 +151,10 @@ export default function App() {
     }
   }, []);
 
-  // 1b. 處理 Firebase 雲端即時訂閱同步
+  // 1b. 處理 Firestore 雲端即時訂閱同步
   useEffect(() => {
-    if (!settings.firebaseSyncEnabled || !settings.firebaseConfigJson || !settings.firebaseSyncKey) {
+    // 只要有輸入同步金鑰，就自動訂閱（config 已寫死在程式碼中）
+    if (!settings.firebaseSyncKey) {
       setSyncStatus('idle');
       return;
     }
@@ -163,21 +164,22 @@ export default function App() {
     let isInitialLoad = true;
     
     const unsubscribe = subscribeToFirebase(
-      settings.firebaseConfigJson,
       settings.firebaseSyncKey,
       (remoteData) => {
-        // 只有在第一次載入，或雲端資料的時間戳記比我們本機的更晚時，才覆蓋本機
         if (isInitialLoad || remoteData.updatedAt > lastSyncedAt) {
           isInitialLoad = false;
           setLastSyncedAt(remoteData.updatedAt);
+
+          // 雙重保險：確保一定是陣列（Firebase 有時會回傳物件）
+          const safeRecipes = Array.isArray(remoteData.recipes) ? remoteData.recipes : [];
+          const safeIngredients = Array.isArray(remoteData.ingredients) ? remoteData.ingredients : [];
           
-          if (remoteData.recipes && remoteData.recipes.length > 0) {
-            setRecipes(remoteData.recipes);
-            localStorage.setItem('nutrition_calculator_recipes', JSON.stringify(remoteData.recipes));
+          if (safeRecipes.length > 0) {
+            setRecipes(safeRecipes);
+            localStorage.setItem('nutrition_calculator_recipes', JSON.stringify(safeRecipes));
             
-            // 如果當前編輯中的配方在雲端被更新，同步刷新編輯暫存區
             if (currentRecipeId) {
-              const updated = remoteData.recipes.find(r => r.id === currentRecipeId);
+              const updated = safeRecipes.find((r: any) => r.id === currentRecipeId);
               if (updated) {
                 setEditingRecipe(updated);
                 setDirtyRecipes(prev => ({ ...prev, [currentRecipeId]: false }));
@@ -185,16 +187,17 @@ export default function App() {
             }
           }
           
-          if (remoteData.ingredients && remoteData.ingredients.length > 0) {
-            setIngredients(remoteData.ingredients);
-            localStorage.setItem('nutrition_calculator_ingredients', JSON.stringify(remoteData.ingredients));
+          if (safeIngredients.length > 0) {
+            setIngredients(safeIngredients);
+            localStorage.setItem('nutrition_calculator_ingredients', JSON.stringify(safeIngredients));
           }
           
           setSyncStatus('success');
         }
+
       },
       (error) => {
-        console.error('Firebase sync error:', error);
+        console.error('Firestore sync error:', error);
         setSyncStatus('error');
       }
     );
@@ -202,22 +205,23 @@ export default function App() {
     return () => {
       unsubscribe();
     };
-  }, [settings.firebaseSyncEnabled, settings.firebaseConfigJson, settings.firebaseSyncKey, lastSyncedAt, currentRecipeId]);
+  }, [settings.firebaseSyncKey, lastSyncedAt, currentRecipeId]);
 
-  // 1c. 觸發雲端上傳
+
+  // 1c. 觸發 Firestore 上傳
   const triggerFirebaseUpload = async (updatedRecipes: Recipe[], updatedIngredients: Ingredient[]) => {
-    if (!settings.firebaseSyncEnabled || !settings.firebaseConfigJson || !settings.firebaseSyncKey) return;
+    if (!settings.firebaseSyncKey) return;
     try {
       setSyncStatus('syncing');
       const now = Date.now();
-      await uploadToFirebase(settings.firebaseConfigJson, settings.firebaseSyncKey, {
+      await uploadToFirebase(settings.firebaseSyncKey, {
         recipes: updatedRecipes,
         ingredients: updatedIngredients
       });
       setLastSyncedAt(now);
       setSyncStatus('success');
     } catch (err) {
-      console.error('Firebase 同步失敗:', err);
+      console.error('Firestore 同步失敗:', err);
       setSyncStatus('error');
     }
   };
@@ -544,8 +548,8 @@ export default function App() {
     setSettings(updatedSettings);
     localStorage.setItem('nutrition_calculator_settings', JSON.stringify(updatedSettings));
     
-    // 如果剛啟用了 Firebase 同步，主動上傳一次本地現有數據
-    if (updatedSettings.firebaseSyncEnabled && updatedSettings.firebaseConfigJson && updatedSettings.firebaseSyncKey) {
+    // 如果設定了同步金鑰，主動上傳一次本地現有數據
+    if (updatedSettings.firebaseSyncKey) {
       setTimeout(() => {
         triggerFirebaseUpload(recipes, ingredients);
       }, 600);
@@ -618,8 +622,8 @@ export default function App() {
           
           setDirtyRecipes({});
           
-          // 如果有啟用 Firebase，同步上傳
-          if (data.settings?.firebaseSyncEnabled) {
+          // 如果有設定同步金鑰，還原後同步上傳
+          if (data.settings?.firebaseSyncKey || settings.firebaseSyncKey) {
             triggerFirebaseUpload(data.recipes, data.ingredients);
           }
           
@@ -687,7 +691,7 @@ export default function App() {
           
           <div className="navbar-right">
             {/* Firebase 雲端同步狀態顯示 */}
-            {settings.firebaseSyncEnabled && (
+            {settings.firebaseSyncKey && (
               <span 
                 className={`sync-status-badge ${syncStatus}`}
                 style={{ 
